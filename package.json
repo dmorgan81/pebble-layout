@@ -1,0 +1,25 @@
+{
+  "name": "pebble-layout",
+  "author": "David Morgan",
+  "version": "2.0.0",
+  "files": [
+    "dist.zip"
+  ],
+  "keywords": [
+    "pebble-package"
+  ],
+  "dependencies": {},
+  "pebble": {
+    "projectType": "package",
+    "sdkVersion": "3",
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite"
+    ],
+    "resources": {
+      "media": []
+    }
+  }
+}
