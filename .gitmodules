@@ -1,0 +1,3 @@
+[submodule "src/c/jsmn"]
+	path = src/c/jsmn
+	url = https://github.com/zserge/jsmn

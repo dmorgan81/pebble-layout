@@ -35,7 +35,7 @@ def build(ctx):
         ctx.env = ctx.all_envs[platform]
         ctx.set_group(ctx.env.PLATFORM_NAME)
         lib_name = '{}/{}'.format(ctx.env.BUILD_DIR, ctx.env.PROJECT_INFO['name'])
-        ctx.pbl_build(source=ctx.path.ant_glob('src/c/**/*.c'), target=lib_name, bin_type='lib')
+        ctx.pbl_build(source=ctx.path.ant_glob('src/c/**/*.c', excl=['src/c/jsmn/*/*.c']), target=lib_name, bin_type='lib')
     ctx.env = cached_env
 
     ctx.set_group('bundle')
