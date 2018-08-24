@@ -8,7 +8,9 @@
   "keywords": [
     "pebble-package"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@smallstoneapps/linked-list": "^1.4.0"
+  },
   "pebble": {
     "projectType": "package",
     "sdkVersion": "3",

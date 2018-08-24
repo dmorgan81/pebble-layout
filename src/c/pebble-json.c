@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <@smallstoneapps/linked-list/linked-list.h>
 #include "jsmn/jsmn.h"
 #include "pebble-json.h"
 
@@ -7,8 +8,13 @@
 struct Json {
     char *buf;
     bool free_buf;
+    LinkedRoot *marks;
     jsmntok_t *tokens;
     int16_t num_tokens;
+    int16_t index;
+};
+
+struct JsonMark {
     int16_t index;
 };
 
@@ -42,6 +48,11 @@ Json *json_create(const char *s, bool free_on_destroy) {
     return json;
 }
 
+static bool prv_marks_destroy(void *object, void *context) {
+    free(object);
+    return true;
+}
+
 void json_destroy(Json *json) {
     json->index = -1;
     json->num_tokens = -1;
@@ -49,10 +60,33 @@ void json_destroy(Json *json) {
     free(json->tokens);
     json->tokens = NULL;
 
+    if (json->marks) {
+        linked_list_foreach(json->marks, prv_marks_destroy, NULL);
+        linked_list_clear(json->marks);
+        free(json->marks);
+        json->marks = NULL;
+    }
+
     if (json->free_buf) free(json->buf);
     json->buf = NULL;
 
     free(json);
+}
+
+bool json_is_string(Json *json) {
+    return json->tokens[json->index].type == JSMN_STRING;
+}
+
+bool json_is_primitive(Json *json) {
+    return json->tokens[json->index].type == JSMN_PRIMITIVE;
+}
+
+bool json_is_array(Json *json) {
+    return json->tokens[json->index].type == JSMN_ARRAY;
+}
+
+bool json_is_object(Json *json) {
+    return json->tokens[json->index].type == JSMN_OBJECT;
 }
 
 bool json_has_next(Json *json) {
@@ -60,17 +94,15 @@ bool json_has_next(Json *json) {
 }
 
 static jsmntok_t *prv_json_next(Json *json) {
-    return &json->tokens[json->index++];
+    return &json->tokens[++json->index];
 }
 
 static char * prv_json_string(Json *json, jsmntok_t *tok, char *dest) {
     char *st = dest;
-    if (st == NULL) {
-        size_t len = (tok->end - tok->start) + 1;
-        st = malloc(sizeof(char) * len);
-        memset(st, 0, len);
-    }
-    return strncpy(st, json->buf + tok->start, tok->end - tok->start);
+    size_t len = tok->end - tok->start;
+    if (st == NULL)  st = malloc(sizeof(char) * (len + 1));
+    memset(st, 0, len + 1);
+    return strncpy(st, json->buf + tok->start, len);
 }
 
 char *json_next_string(Json *json, char *dest) {
@@ -97,24 +129,47 @@ int json_next_int(Json *json) {
     return i;
 }
 
-int16_t json_get_index(const Json *json) {
-    return json->index;
+size_t json_get_size(Json *json) {
+    return json->tokens[json->index].size;
 }
 
-void json_set_index(Json *json, int16_t index) {
-    json->index = index;
+JsonMark *json_mark(Json *json) {
+    if (!json->marks) json->marks = linked_list_create_root();
+    JsonMark *mark = malloc(sizeof(JsonMark));
+    mark->index = json->index;
+    linked_list_prepend(json->marks, mark);
+    return mark;
 }
 
-void json_skip_next(Json *json) {
+void json_reset(Json *json, JsonMark *mark) {
+    if (!json->marks) return;
+    int16_t index = linked_list_find(json->marks, mark);
+    if (index > -1) {
+        json->index = mark->index;
+        linked_list_remove(json->marks, index);
+        free(mark);
+
+        if (linked_list_count(json->marks) == 0) {
+            free(json->marks);
+            json->marks = NULL;
+        }
+    }
+}
+
+void json_advance(Json *json) {
+    json->index += 1;
+}
+
+void json_skip_tree(Json *json) {
     jsmntok_t *tok = prv_json_next(json);
     if (tok->type == JSMN_ARRAY) {
         int size = tok->size;
-        for (int i = 0; i < size; i++) json_skip_next(json);
+        for (int i = 0; i < size; i++) json_skip_tree(json);
     } else if (tok-> type == JSMN_OBJECT) {
         int size = tok->size;
         for (int i = 0; i < size; i++) {
             tok = prv_json_next(json);
-            json_skip_next(json);
+            json_skip_tree(json);
         }
     }
 }
