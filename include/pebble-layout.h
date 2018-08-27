@@ -8,12 +8,14 @@ typedef void* (*TypeCreateFunc)(GRect frame);
 typedef void (*TypeDestroyFunc)(void *object);
 typedef void (*TypeParseFunc)(Layout *layout, Json *json, void *object);
 typedef Layer* (*TypeGetLayerFunc)(void *object);
+typedef void* (*TypeCastToParentFunc)(void *object);
 
 typedef struct {
     TypeCreateFunc create;
     TypeDestroyFunc destroy;
     TypeParseFunc parse;
     TypeGetLayerFunc get_layer;
+    TypeCastToParentFunc cast;
 } TypeFuncs;
 
 Layout *layout_create(void);

@@ -17,6 +17,7 @@ bool json_has_next(Json *json);
 char *json_next_string(Json *json, char *s);
 bool json_next_bool(Json *json);
 int json_next_int(Json *json);
+GColor json_next_color(Json *json);
 
 size_t json_get_size(Json *json);
 

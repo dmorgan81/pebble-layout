@@ -106,7 +106,7 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
         JsonMark *mark = json_mark(json);
         struct TypeData *parent_type = dict_get(layout->types, type_data->parent_type);
         if (parent_type) {
-            parent_type->type_funcs.parse(layout, json, data->object);
+            parent_type->type_funcs.parse(layout, json, type_data->type_funcs.cast(data->object));
         }
         json_reset(json, mark);
     }
@@ -148,6 +148,42 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
     return layer;
 }
 
+static void prv_text_layer_destroy(void *object) {
+    TextLayer *layer = (TextLayer *) object;
+    char *buf = (char *) text_layer_get_text(layer);
+    if (buf) free(buf);
+    text_layer_destroy(layer);
+}
+
+static void prv_text_layer_parse(Layout *layout, Json *json, void *object) {
+    TextLayer *layer = (TextLayer *) object;
+    text_layer_set_background_color(layer, GColorClear);
+
+    size_t size = json_get_size(json);
+    for (size_t i = 0; i < size; i++) {
+        char key[32];
+        json_next_string(json, key);
+        if (strncmp(key, "text", sizeof(key)) == 0) {
+            char *text = json_next_string(json, NULL);
+            text_layer_set_text(layer, text);
+        } else if (strncmp(key, "color", sizeof(key)) == 0) {
+            text_layer_set_text_color(layer, json_next_color(json));
+        } else if (strncmp(key, "background", sizeof(key)) == 0) {
+            text_layer_set_background_color(layer, json_next_color(json));
+        } else if (strncmp(key, "alignment", sizeof(key)) == 0) {
+            json_next_string(json, key);
+            GTextAlignment alignment = GTextAlignmentLeft;
+            if (strncmp(key, "GTextAlignmentCenter", sizeof(key)) == 0 ||
+                strncmp(key, "center", sizeof(key)) == 0) alignment = GTextAlignmentCenter;
+            else if (strncmp(key, "GTextAlignmentRight", sizeof(key)) == 0 ||
+                        strncmp(key, "right", sizeof(key)) == 0) alignment = GTextAlignmentRight;
+            text_layer_set_text_alignment(layer, alignment);
+        } else {
+            json_skip_tree(json);
+        }
+    }
+}
+
 Layout *layout_create(void) {
     Layout *layout = malloc(sizeof(Layout));
     layout->root = NULL;
@@ -158,6 +194,13 @@ Layout *layout_create(void) {
     layout_add_type(layout, "Layer", (TypeFuncs) {
         .create = (TypeCreateFunc) layer_create,
         .destroy = (TypeDestroyFunc) layer_destroy
+    }, NULL);
+
+    layout_add_type(layout, "TextLayer", (TypeFuncs) {
+        .create = (TypeCreateFunc) text_layer_create,
+        .destroy = prv_text_layer_destroy,
+        .parse = prv_text_layer_parse,
+        .get_layer = (TypeGetLayerFunc) text_layer_get_layer
     }, NULL);
 
     return layout;
