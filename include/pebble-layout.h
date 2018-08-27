@@ -25,3 +25,5 @@ void layout_destroy(Layout *layout);
 void layout_add_type(Layout *layout, const char *type, TypeFuncs type_funcs, const char *parent_type);
 Layer *layout_get_layer(Layout *layout);
 void *layout_find_by_id(Layout *layout, const char *id);
+void layout_add_font(Layout *layout, char *name, uint32_t resource_id);
+GFont layout_get_font(Layout *layout, const char *name);

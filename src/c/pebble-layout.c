@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include "dict.h"
 #include "stack.h"
+#include "standard-types.h"
 #include "pebble-json.h"
 #include "pebble-layout.h"
 
@@ -8,6 +9,7 @@ struct Layout {
     Layer *root;
     Dict *types;
     Dict *ids;
+    Dict *fonts;
     Stack *layers;
 };
 
@@ -19,6 +21,11 @@ struct LayerData {
 struct TypeData {
     TypeFuncs type_funcs;
     const char *parent_type;
+};
+
+struct FontInfo {
+    GFont font;
+    bool system;
 };
 
 static GRect prv_get_frame(Json *json) {
@@ -148,40 +155,11 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
     return layer;
 }
 
-static void prv_text_layer_destroy(void *object) {
-    TextLayer *layer = (TextLayer *) object;
-    char *buf = (char *) text_layer_get_text(layer);
-    if (buf) free(buf);
-    text_layer_destroy(layer);
-}
-
-static void prv_text_layer_parse(Layout *layout, Json *json, void *object) {
-    TextLayer *layer = (TextLayer *) object;
-    text_layer_set_background_color(layer, GColorClear);
-
-    size_t size = json_get_size(json);
-    for (size_t i = 0; i < size; i++) {
-        char key[32];
-        json_next_string(json, key);
-        if (strncmp(key, "text", sizeof(key)) == 0) {
-            char *text = json_next_string(json, NULL);
-            text_layer_set_text(layer, text);
-        } else if (strncmp(key, "color", sizeof(key)) == 0) {
-            text_layer_set_text_color(layer, json_next_color(json));
-        } else if (strncmp(key, "background", sizeof(key)) == 0) {
-            text_layer_set_background_color(layer, json_next_color(json));
-        } else if (strncmp(key, "alignment", sizeof(key)) == 0) {
-            json_next_string(json, key);
-            GTextAlignment alignment = GTextAlignmentLeft;
-            if (strncmp(key, "GTextAlignmentCenter", sizeof(key)) == 0 ||
-                strncmp(key, "center", sizeof(key)) == 0) alignment = GTextAlignmentCenter;
-            else if (strncmp(key, "GTextAlignmentRight", sizeof(key)) == 0 ||
-                        strncmp(key, "right", sizeof(key)) == 0) alignment = GTextAlignmentRight;
-            text_layer_set_text_alignment(layer, alignment);
-        } else {
-            json_skip_tree(json);
-        }
-    }
+static void prv_add_system_font(Layout *layout, char *name, const char *font_key) {
+    FontInfo *font_info = malloc(sizeof(FontInfo));
+    font_info->font = fonts_get_system_font(font_key);
+    font_info->system = true;
+    dict_put(layout->fonts, name, font_info);
 }
 
 Layout *layout_create(void) {
@@ -189,19 +167,37 @@ Layout *layout_create(void) {
     layout->root = NULL;
     layout->types = dict_create();
     layout->ids = dict_create();
+    layout->fonts = dict_create();
     layout->layers = stack_create();
 
-    layout_add_type(layout, "Layer", (TypeFuncs) {
-        .create = (TypeCreateFunc) layer_create,
-        .destroy = (TypeDestroyFunc) layer_destroy
-    }, NULL);
+    add_standard_types(layout);
 
-    layout_add_type(layout, "TextLayer", (TypeFuncs) {
-        .create = (TypeCreateFunc) text_layer_create,
-        .destroy = prv_text_layer_destroy,
-        .parse = prv_text_layer_parse,
-        .get_layer = (TypeGetLayerFunc) text_layer_get_layer
-    }, NULL);
+    prv_add_system_font(layout, "GOTHIC_18_BOLD", FONT_KEY_GOTHIC_18_BOLD);
+    prv_add_system_font(layout, "GOTHIC_24", FONT_KEY_GOTHIC_24);
+    prv_add_system_font(layout, "GOTHIC_09", FONT_KEY_GOTHIC_09);
+    prv_add_system_font(layout, "GOTHIC_14", FONT_KEY_GOTHIC_14);
+    prv_add_system_font(layout, "GOTHIC_14_BOLD", FONT_KEY_GOTHIC_14_BOLD);
+    prv_add_system_font(layout, "GOTHIC_18", FONT_KEY_GOTHIC_18);
+    prv_add_system_font(layout, "GOTHIC_24_BOLD", FONT_KEY_GOTHIC_24_BOLD);
+    prv_add_system_font(layout, "GOTHIC_28", FONT_KEY_GOTHIC_28);
+    prv_add_system_font(layout, "GOTHIC_28_BOLD", FONT_KEY_GOTHIC_28_BOLD);
+    prv_add_system_font(layout, "BITHAM_30_BLACK", FONT_KEY_BITHAM_30_BLACK);
+    prv_add_system_font(layout, "BITHAM_42_BOLD", FONT_KEY_BITHAM_42_BOLD);
+    prv_add_system_font(layout, "BITHAM_42_LIGHT", FONT_KEY_BITHAM_42_LIGHT);
+    prv_add_system_font(layout, "BITHAM_42_MEDIUM_NUMBERS", FONT_KEY_BITHAM_42_MEDIUM_NUMBERS);
+    prv_add_system_font(layout, "BITHAM_34_MEDIUM_NUMBERS", FONT_KEY_BITHAM_34_MEDIUM_NUMBERS);
+    prv_add_system_font(layout, "BITHAM_34_LIGHT_SUBSET", FONT_KEY_BITHAM_34_LIGHT_SUBSET);
+    prv_add_system_font(layout, "BITHAM_18_LIGHT_SUBSET", FONT_KEY_BITHAM_18_LIGHT_SUBSET);
+    prv_add_system_font(layout, "ROBOTO_CONDENSED_21", FONT_KEY_ROBOTO_CONDENSED_21);
+    prv_add_system_font(layout, "ROBOTO_BOLD_SUBSET_49", FONT_KEY_ROBOTO_BOLD_SUBSET_49);
+    prv_add_system_font(layout, "DROID_SERIF_28_BOLD", FONT_KEY_DROID_SERIF_28_BOLD);
+    prv_add_system_font(layout, "LECO_20_BOLD_NUMBERS", FONT_KEY_LECO_20_BOLD_NUMBERS);
+    prv_add_system_font(layout, "LECO_26_BOLD_NUMBERS_AM_PM", FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
+    prv_add_system_font(layout, "LECO_32_BOLD_NUMBERS", FONT_KEY_LECO_32_BOLD_NUMBERS);
+    prv_add_system_font(layout, "LECO_36_BOLD_NUMBERS", FONT_KEY_LECO_36_BOLD_NUMBERS);
+    prv_add_system_font(layout, "LECO_38_BOLD_NUMBERS", FONT_KEY_LECO_38_BOLD_NUMBERS);
+    prv_add_system_font(layout, "LECO_42_NUMBERS", FONT_KEY_LECO_42_NUMBERS);
+    prv_add_system_font(layout, "LECO_28_LIGHT_NUMBERS", FONT_KEY_LECO_28_LIGHT_NUMBERS);
 
     return layout;
 }
@@ -242,6 +238,14 @@ static bool prv_value_destroy_callback(char *key, void *value, void *context) {
     return true;
 }
 
+static bool prv_fonts_destroy_callback(char *key, void *value, void *context) {
+    FontInfo *font_info = (FontInfo *) value;
+    if (!font_info->system) fonts_unload_custom_font(font_info->font);
+    font_info->font = NULL;
+    free(font_info);
+    return true;
+}
+
 void layout_destroy(Layout *layout) {
     struct LayerData *layer_data = NULL;
     while ((layer_data = stack_pop(layout->layers)) != NULL) {
@@ -252,6 +256,10 @@ void layout_destroy(Layout *layout) {
 
     stack_destroy(layout->layers);
     layout->layers = NULL;
+
+    dict_foreach(layout->fonts, prv_fonts_destroy_callback, NULL);
+    dict_destroy(layout->fonts);
+    layout->fonts = NULL;
 
     dict_foreach(layout->ids, prv_key_destroy_callback, NULL);
     dict_destroy(layout->ids);
@@ -277,4 +285,16 @@ Layer *layout_get_layer(Layout *layout) {
 
 void *layout_find_by_id(Layout *layout, const char *id) {
     return dict_get(layout->ids, id);
+}
+
+void layout_add_font(Layout *layout, char *name, uint32_t resource_id) {
+    FontInfo *font_info = malloc(sizeof(FontInfo));
+    font_info->font = fonts_load_custom_font(resource_get_handle(resource_id));
+    font_info->system = false;
+    dict_put(layout->fonts, name, font_info);
+}
+
+GFont layout_get_font(Layout *layout, const char *name) {
+    FontInfo *font_info = dict_get(layout->fonts, name);
+    return font_info ? font_info->font : NULL;
 }
