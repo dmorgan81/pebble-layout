@@ -63,7 +63,6 @@ static GRect prv_get_frame(Json *json) {
                 }
             }
             rect = GRect(x, y, w, h);
-            break;
         } else {
             json_skip_tree(json);
         }
@@ -118,12 +117,12 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
     data->object = type_funcs.create(frame);
 
     if (type_data->parent_type) {
-        JsonMark *mark = json_mark(json);
         struct TypeData *parent_type = dict_get(layout->types, type_data->parent_type);
         if (parent_type) {
+            JsonMark *mark = json_mark(json);
             parent_type->type_funcs.parse(layout, json, type_data->type_funcs.cast(data->object));
+            json_reset(json, mark);
         }
-        json_reset(json, mark);
     }
 
     if (type_funcs.parse) {

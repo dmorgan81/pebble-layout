@@ -117,8 +117,13 @@ bool json_next_bool(Json *json) {
 }
 
 int json_next_int(Json *json) {
-    char *s = json_next_string(json);;
-    int i = s == NULL ? 0 : atoi(s);
+    jsmntok_t *tok = prv_json_next(json);
+    if (tok->type != JSMN_PRIMITIVE) return 0;
+    size_t len = (tok->end - tok->start);
+    char *s = malloc(sizeof(char) * (len + 1));
+    memset(s, 0, len + 1);
+    strncpy(s, json->buf + tok->start, len);
+    int i = atoi(s);
     free(s);
     return i;
 }

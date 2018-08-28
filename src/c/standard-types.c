@@ -172,6 +172,75 @@ static void prv_status_bar_layer_parse(Layout *layout, Json *json, void *object)
     status_bar_layer_set_colors(layer, background, foreground);
 }
 
+struct PdcLayerData {
+    GDrawCommandImage *pdc;
+    GPoint offset;
+};
+
+static void prv_pdc_layer_update_proc(Layer *layer, GContext *ctx) {
+    struct PdcLayerData *data = layer_get_data(layer);
+    if (data->pdc) gdraw_command_image_draw(ctx, data->pdc, data->offset);
+}
+
+static void *prv_pdc_layer_create(GRect frame) {
+    Layer *layer = layer_create_with_data(frame, sizeof(struct PdcLayerData));
+    layer_set_update_proc(layer, prv_pdc_layer_update_proc);
+
+    struct PdcLayerData *data = layer_get_data(layer);
+    data->pdc = NULL;
+    data->offset = GPointZero;
+
+    return layer;
+}
+
+static void prv_pdc_layer_destroy(void *object) {
+    Layer *layer = (Layer *) object;
+    struct PdcLayerData *data = layer_get_data(layer);
+
+    if (data->pdc) gdraw_command_image_destroy(data->pdc);
+    data->pdc = NULL;
+
+    layer_destroy(layer);
+}
+
+static void prv_pdc_layer_parse(Layout *layout, Json *json, void *object) {
+    Layer *layer = (Layer *) object;
+    struct PdcLayerData *data = layer_get_data(layer);
+
+    size_t size = json_get_size(json);
+    for (size_t i = 0; i < size; i++) {
+        char *key = json_next_string(json);
+        if (eq(key, "pdc")) {
+            char *value = json_next_string(json);
+            uint32_t *resource_id = layout_get_resource(layout, value);
+            if (resource_id) {
+                data->pdc = gdraw_command_image_create_with_resource(*resource_id);
+            }
+            free(value);
+        } else if (eq(key, "offset")) {
+            json_advance(json);
+            int x = 0, y = 0;
+            if (json_is_array(json)) {
+                x = json_next_int(json);
+                y = json_next_int(json);
+            } else if (json_is_object(json)) {
+                size_t len = json_get_size(json);
+                for (size_t j = 0; j < len; j++) {
+                    char *value = json_next_string(json);
+                    if (value[0] == 'x') x = json_next_int(json);
+                    else if (value[0] == 'y') y = json_next_int(json);
+                    else json_skip_tree(json);
+                    free(value);
+                }
+            }
+            data->offset = GPoint(x, y);
+        } else {
+            json_skip_tree(json);
+        }
+        free(key);
+    }
+}
+
 void add_standard_types(Layout *layout) {
     layout_add_type(layout, "Layer", (TypeFuncs) {
         .create = prv_default_layer_create,
@@ -198,5 +267,11 @@ void add_standard_types(Layout *layout) {
         .destroy = (TypeDestroyFunc) status_bar_layer_destroy,
         .parse = prv_status_bar_layer_parse,
         .get_layer = (TypeGetLayerFunc) status_bar_layer_get_layer
+    }, NULL);
+
+    layout_add_type(layout, "PdcLayer", (TypeFuncs) {
+        .create = prv_pdc_layer_create,
+        .destroy = prv_pdc_layer_destroy,
+        .parse = prv_pdc_layer_parse
     }, NULL);
 }
