@@ -80,9 +80,8 @@ TextLayers can have the following properties:
 | background | `text_layer_set_background_color()` |
 | color | `text_layer_set_text_color()` |
 | alignment | `text_layer_set_text_alignment()` |
-| overflow | `text_layer_set_overflow_mode()` |
 
-Anything that takes an enum value takes the value as a string, like GTextAlignmentCenter or GTextOverflowModeFill.
+Anything that takes an enum value takes the value as a string, like GTextAlignmentCenter.
 
 BitmapLayers can have the following properties:
 
