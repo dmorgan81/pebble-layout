@@ -32,6 +32,8 @@ struct FontInfo {
     bool system;
 };
 
+static struct TypeData NO_TYPE_SENTINAL;
+
 static GRect prv_get_frame(Json *json) {
     if (!json_is_object(json)) return GRectZero;
 
@@ -84,10 +86,11 @@ static struct TypeData *prv_get_type_data(Dict *types, Json *json) {
             char *type = json_next_string(json);
             if (!dict_contains(types, type)) {
                 APP_LOG(APP_LOG_LEVEL_WARNING, "Type %s does not exist. Skipping layer.", type);
+                type_data = &NO_TYPE_SENTINAL;
+            } else {
+                type_data = dict_get(types, type);
             }
-            type_data = dict_get(types, type);
             free(type);
-            break;
         } else {
             json_skip_tree(json);
         }
@@ -104,7 +107,7 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
     if (!json_is_object(json)) return NULL;
 
     struct TypeData *type_data = prv_get_type_data(layout->types, json);
-    if (type_data == NULL) return NULL;
+    if (type_data == &NO_TYPE_SENTINAL) return NULL;
     TypeFuncs type_funcs = type_data->type_funcs;
 
     struct LayerData *data = malloc(sizeof(struct LayerData));
