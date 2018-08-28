@@ -1,7 +1,7 @@
 {
   "name": "pebble-layout",
   "author": "David Morgan",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A pebble-package to create simple Pebble app layouts in JSON",
   "license": "ISC",
   "repository": {
