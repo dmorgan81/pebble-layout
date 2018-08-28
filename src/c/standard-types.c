@@ -136,6 +136,42 @@ static void prv_bitmap_layer_destroy(void *object) {
     bitmap_layer_destroy(layer);
 }
 
+static void *prv_status_bar_layer_create(GRect frame) {
+    StatusBarLayer *layer = status_bar_layer_create();
+    if (!grect_equal(&frame, &GRectZero)) layer_set_frame(status_bar_layer_get_layer(layer), frame);
+    return layer;
+}
+
+static void prv_status_bar_layer_parse(Layout *layout, Json *json, void *object) {
+    StatusBarLayer *layer = (StatusBarLayer *) object;
+
+    GColor background = status_bar_layer_get_background_color(layer);
+    GColor foreground = status_bar_layer_get_foreground_color(layer);
+
+    size_t size = json_get_size(json);
+    for (size_t i = 0; i < size; i++) {
+        char *key = json_next_string(json);
+        if (eq(key, "background")) {
+            background = json_next_color(json);
+        } else if (eq(key, "foreground")) {
+            foreground = json_next_color(json);
+        }  else if (eq(key, "separator")) {
+            char *value = json_next_string(json);
+            StatusBarLayerSeparatorMode mode = StatusBarLayerSeparatorModeNone;
+            if (eq(value, "dotted") || eq(value, "StatusBarLayerSeparatorModeDotted")) {
+                mode = StatusBarLayerSeparatorModeDotted;
+            }
+            status_bar_layer_set_separator_mode(layer, mode);
+            free(value);
+        } else {
+            json_skip_tree(json);
+        }
+        free(key);
+    }
+
+    status_bar_layer_set_colors(layer, background, foreground);
+}
+
 void add_standard_types(Layout *layout) {
     layout_add_type(layout, "Layer", (TypeFuncs) {
         .create = prv_default_layer_create,
@@ -155,5 +191,12 @@ void add_standard_types(Layout *layout) {
         .destroy = prv_bitmap_layer_destroy,
         .parse = prv_bitmap_layer_parse,
         .get_layer = (TypeGetLayerFunc) bitmap_layer_get_layer
+    }, NULL);
+
+    layout_add_type(layout, "StatusBarLayer", (TypeFuncs) {
+        .create = prv_status_bar_layer_create,
+        .destroy = (TypeDestroyFunc) status_bar_layer_destroy,
+        .parse = prv_status_bar_layer_parse,
+        .get_layer = (TypeGetLayerFunc) status_bar_layer_get_layer
     }, NULL);
 }
