@@ -2,6 +2,7 @@
 #include "dict.h"
 #include "stack.h"
 #include "standard-types.h"
+#include "layout-internals.h"
 #include "pebble-json.h"
 #include "pebble-layout.h"
 
@@ -10,6 +11,7 @@ struct Layout {
     Dict *types;
     Dict *ids;
     Dict *fonts;
+    Dict *resource_ids;
     Stack *layers;
 };
 
@@ -168,6 +170,7 @@ Layout *layout_create(void) {
     layout->types = dict_create();
     layout->ids = dict_create();
     layout->fonts = dict_create();
+    layout->resource_ids = dict_create();
     layout->layers = stack_create();
 
     add_standard_types(layout);
@@ -257,6 +260,10 @@ void layout_destroy(Layout *layout) {
     stack_destroy(layout->layers);
     layout->layers = NULL;
 
+    dict_foreach(layout->resource_ids, prv_value_destroy_callback, NULL);
+    dict_destroy(layout->resource_ids);
+    layout->resource_ids = NULL;
+
     dict_foreach(layout->fonts, prv_fonts_destroy_callback, NULL);
     dict_destroy(layout->fonts);
     layout->fonts = NULL;
@@ -297,4 +304,14 @@ void layout_add_font(Layout *layout, char *name, uint32_t resource_id) {
 GFont layout_get_font(Layout *layout, const char *name) {
     FontInfo *font_info = dict_get(layout->fonts, name);
     return font_info ? font_info->font : NULL;
+}
+
+void layout_add_resource(Layout *layout, char *name, uint32_t resource_id) {
+    uint32_t *rid = malloc(sizeof(uint32_t));
+    memcpy(rid, &resource_id, sizeof(uint32_t));
+    dict_put(layout->resource_ids, name, rid);
+}
+
+uint32_t *layout_get_resource(Layout *layout, const char *name) {
+    return dict_get(layout->resource_ids, name);
 }
