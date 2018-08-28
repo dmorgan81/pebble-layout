@@ -6,6 +6,8 @@
 #include "pebble-json.h"
 #include "pebble-layout.h"
 
+#define eq(s, t) (strncmp(s, t, strlen(s)) == 0)
+
 struct Layout {
     Layer *root;
     Dict *types;
@@ -37,9 +39,8 @@ static GRect prv_get_frame(Json *json) {
     JsonMark *mark = json_mark(json);
     size_t size = json_get_size(json);
     for (size_t i = 0; i < size; i++) {
-        char key[8];
-        json_next_string(json, key);
-        if (strncmp(key, "frame", sizeof(key)) == 0) {
+        char *key = json_next_string(json);
+        if (eq(key, "frame")) {
             json_advance(json);
             int x = 0, y = 0, w = 0, h = 0;
             if (json_is_array(json)) {
@@ -50,12 +51,13 @@ static GRect prv_get_frame(Json *json) {
             } else if (json_is_object(json)) {
                 size_t len = json_get_size(json);
                 for (size_t j = 0; j < len; j++) {
-                    json_next_string(json, key);
-                    if (key[0] == 'x') x = json_next_int(json);
-                    else if (key[0] == 'y') y = json_next_int(json);
-                    else if (key[0] == 'w') w = json_next_int(json);
-                    else if (key[0] == 'h') h = json_next_int(json);
+                    char *value = json_next_string(json);
+                    if (value[0] == 'x') x = json_next_int(json);
+                    else if (value[0] == 'y') y = json_next_int(json);
+                    else if (value[0] == 'w') w = json_next_int(json);
+                    else if (value[0] == 'h') h = json_next_int(json);
                     else json_skip_tree(json);
+                    free(value);
                 }
             }
             rect = GRect(x, y, w, h);
@@ -63,6 +65,7 @@ static GRect prv_get_frame(Json *json) {
         } else {
             json_skip_tree(json);
         }
+        free(key);
     }
 
     json_reset(json, mark);
@@ -76,10 +79,9 @@ static struct TypeData *prv_get_type_data(Dict *types, Json *json) {
     JsonMark *mark = json_mark(json);
     size_t size = json_get_size(json);
     for (size_t i = 0; i < size; i++) {
-        char key[8];
-        json_next_string(json, key);
-        if (strncmp(key, "type", sizeof(key)) == 0) {
-            char *type = json_next_string(json, NULL);
+        char *key = json_next_string(json);
+        if (eq(key, "type")) {
+            char *type = json_next_string(json);
             if (!dict_contains(types, type)) {
                 APP_LOG(APP_LOG_LEVEL_WARNING, "Type %s does not exist. Skipping layer.", type);
             }
@@ -89,6 +91,7 @@ static struct TypeData *prv_get_type_data(Dict *types, Json *json) {
         } else {
             json_skip_tree(json);
         }
+        free(key);
     }
 
     if (type_data == NULL) type_data = dict_get(types, "Layer");
@@ -132,12 +135,11 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
 
     size_t size = json_get_size(json);
     for (size_t i = 0; i < size; i++) {
-        char key[8];
-        json_next_string(json, key);
-        if (strncmp(key, "id", sizeof(key)) == 0) {
-            char *id = json_next_string(json, NULL);
+        char *key = json_next_string(json);
+        if (eq(key, "id")) {
+            char *id = json_next_string(json);
             dict_put(layout->ids, id, data->object);
-        } else if (strncmp(key, "layers", sizeof(key)) == 0) {
+        } else if (eq(key, "layers")) {
             json_advance(json);
             size_t len = json_get_size(json);
             for (size_t j = 0; j < len; j++) {
@@ -145,13 +147,14 @@ static Layer *prv_create_layer(Layout *layout, Json *json) {
                 Layer *child = prv_create_layer(layout, json);
                 if (child) layer_add_child(layer, child);
             }
-        } else if (strncmp(key, "clips", sizeof(key)) == 0) {
+        } else if (eq(key, "clips")) {
             layer_set_clips(layer, json_next_bool(json));
-        } else if (strncmp(key, "hidden", sizeof(key)) == 0) {
+        } else if (eq(key, "hidden")) {
             layer_set_hidden(layer, json_next_bool(json));
         } else {
             json_skip_tree(json);
         }
+        free(key);
     }
 
     return layer;

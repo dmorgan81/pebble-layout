@@ -14,7 +14,7 @@ bool json_is_array(Json *json);
 bool json_is_object(Json *json);
 
 bool json_has_next(Json *json);
-char *json_next_string(Json *json, char *s);
+char *json_next_string(Json *json);
 bool json_next_bool(Json *json);
 int json_next_int(Json *json);
 GColor json_next_color(Json *json);

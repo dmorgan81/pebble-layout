@@ -99,18 +99,13 @@ static jsmntok_t *prv_json_next(Json *json) {
     return &json->tokens[++json->index];
 }
 
-static char * prv_json_string(Json *json, jsmntok_t *tok, char *dest) {
-    char *st = dest;
-    size_t len = tok->end - tok->start;
-    if (st == NULL)  st = malloc(sizeof(char) * (len + 1));
-    memset(st, 0, len + 1);
-    return strncpy(st, json->buf + tok->start, len);
-}
-
-char *json_next_string(Json *json, char *dest) {
+char *json_next_string(Json *json) {
     jsmntok_t *tok = prv_json_next(json);
     if (tok->type != JSMN_STRING) return NULL;
-    return prv_json_string(json, tok, dest);
+    size_t len = tok->end - tok->start;
+    char *s = malloc(sizeof(char) * (len + 1));
+    memset(s, 0, len + 1);
+    return strncpy(s, json->buf + tok->start, len);
 }
 
 bool json_next_bool(Json *json) {
@@ -122,10 +117,7 @@ bool json_next_bool(Json *json) {
 }
 
 int json_next_int(Json *json) {
-    jsmntok_t *tok = prv_json_next(json);
-    size_t len = (tok->end - tok->start) + 1;
-    char *s = malloc(sizeof(char) * len);
-    s = prv_json_string(json, tok, s);
+    char *s = json_next_string(json);;
     int i = s == NULL ? 0 : atoi(s);
     free(s);
     return i;
@@ -188,9 +180,10 @@ static unsigned long
  }
 
 GColor json_next_color(Json *json) {
-    char s[8];
-    json_next_string(json, s);
-    return GColorFromHEX(prv_strtoul(s + (s[0] == '#' ? 1 : 0), NULL, 16));
+    char *s = json_next_string(json);
+    GColor color = GColorFromHEX(prv_strtoul(s + (s[0] == '#' ? 1 : 0), NULL, 16));
+    free(s);
+    return color;
 }
 
 size_t json_get_size(Json *json) {
