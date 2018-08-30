@@ -102,8 +102,49 @@ static struct TypeData *prv_get_type_data(Dict *types, Json *json) {
     return type_data;
 }
 
+static bool prv_eval_capabilities(Json *json) {
+    bool has_capability = true;
+
+    JsonMark *mark = json_mark(json);
+    size_t size = json_get_size(json);
+    for (size_t i = 0; i < size; i++) {
+        char *key = json_next_string(json);
+        if (eq(key, "capabilities")) {
+            json_advance(json);
+            if (!json_is_array(json)) continue;
+            size_t len = json_get_size(json);
+            for (size_t j = 0; j < len; j++) {
+                char *s = json_next_string(json);
+                bool negated = strncmp(s, "NOT_", 4) == 0;
+                char *t = s + (negated ? 4 : 0);
+                bool b = false;
+                if (eq(t, "PLATFORM_APLITE")) b = PBL_PLATFORM_SWITCH(PBL_PLATFORM_TYPE_CURRENT, true, false, false, false, false);
+                else if (eq(t, "PLATFORM_BASALT")) b = PBL_PLATFORM_SWITCH(PBL_PLATFORM_TYPE_CURRENT, false, true, false, false, false);
+                else if (eq(t, "PLATFORM_CHALK")) b = PBL_PLATFORM_SWITCH(PBL_PLATFORM_TYPE_CURRENT, false, false, true, false, false);
+                else if (eq(t, "PLATFORM_DIORITE")) b = PBL_PLATFORM_SWITCH(PBL_PLATFORM_TYPE_CURRENT, false, false, false, true, false);
+                else if (eq(t, "BW")) b = PBL_IF_BW_ELSE(true, false);
+                else if (eq(t, "COLOR")) b = PBL_IF_COLOR_ELSE(true, false);
+                else if (eq(t, "HEALTH")) b = PBL_IF_HEALTH_ELSE(true, false);
+                else if (eq(t, "RECT")) b= PBL_IF_RECT_ELSE(true, false);
+                else if (eq(t, "ROUND")) b = PBL_IF_ROUND_ELSE(true, false);
+                else if (eq(t, "MICROPHONE")) b = PBL_IF_MICROPHONE_ELSE(true, false);
+                else if (eq(t, "SMARTSTRAP")) b = PBL_IF_SMARTSTRAP_ELSE(true, false);
+                has_capability = has_capability && (negated ? !b : b);
+                free(s);
+            }
+        } else {
+            json_skip_tree(json);
+        }
+        free(key);
+    }
+
+    json_reset(json, mark);
+    return has_capability;
+}
+
 static Layer *prv_create_layer(Layout *layout, Json *json) {
     if (!json_is_object(json)) return NULL;
+    if (!prv_eval_capabilities(json)) return NULL;
 
     struct TypeData *type_data = prv_get_type_data(layout->types, json);
     if (type_data == &NO_TYPE_SENTINAL) return NULL;
