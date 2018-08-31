@@ -219,7 +219,7 @@ Layout *layout_create(void) {
     layout->resource_ids = dict_create();
     layout->layers = stack_create();
 
-    add_standard_types(layout);
+    standard_types_add_default_type(layout);
 
     prv_add_system_font(layout, "GOTHIC_18_BOLD", FONT_KEY_GOTHIC_18_BOLD);
     prv_add_system_font(layout, "GOTHIC_24", FONT_KEY_GOTHIC_24);
@@ -360,4 +360,27 @@ void layout_add_resource(Layout *layout, char *name, uint32_t resource_id) {
 
 uint32_t *layout_get_resource(Layout *layout, const char *name) {
     return dict_get(layout->resource_ids, name);
+}
+
+void layout_add_all_standard_types(Layout *layout) {
+    layout_add_text_type(layout);
+    layout_add_bitmap_type(layout);
+    layout_add_status_bar_type(layout);
+    layout_add_pdc_type(layout);
+}
+
+void layout_add_text_type(Layout *layout) {
+    standard_types_add_text_type(layout);
+}
+
+void layout_add_bitmap_type(Layout *layout) {
+    standard_types_add_bitmap_type(layout);
+}
+
+void layout_add_status_bar_type(Layout *layout) {
+    standard_types_add_status_bar_type(layout);
+}
+
+void layout_add_pdc_type(Layout *layout) {
+    standard_types_add_pdc_type(layout);
 }

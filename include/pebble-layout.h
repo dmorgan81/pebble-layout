@@ -27,3 +27,9 @@ Layer *layout_get_layer(Layout *layout);
 void *layout_find_by_id(Layout *layout, const char *id);
 void layout_add_font(Layout *layout, char *name, uint32_t resource_id);
 void layout_add_resource(Layout *layout, char *name, uint32_t resource_id);
+
+void layout_add_all_standard_types(Layout *layout);
+void layout_add_text_type(Layout *layout);
+void layout_add_bitmap_type(Layout *layout);
+void layout_add_status_bar_type(Layout *layout);
+void layout_add_pdc_type(Layout *layout);

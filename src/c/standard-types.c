@@ -241,34 +241,42 @@ static void prv_pdc_layer_parse(Layout *layout, Json *json, void *object) {
     }
 }
 
-void add_standard_types(Layout *layout) {
+void standard_types_add_default_type(Layout *layout) {
     layout_add_type(layout, "Layer", (TypeFuncs) {
         .create = prv_default_layer_create,
         .destroy = (TypeDestroyFunc) layer_destroy,
         .parse = prv_default_layer_parse
     }, NULL);
+}
 
+void standard_types_add_text_type(Layout *layout) {
     layout_add_type(layout, "TextLayer", (TypeFuncs) {
         .create = (TypeCreateFunc) text_layer_create,
         .destroy = prv_text_layer_destroy,
         .parse = prv_text_layer_parse,
         .get_layer = (TypeGetLayerFunc) text_layer_get_layer
     }, NULL);
+}
 
+void standard_types_add_bitmap_type(Layout *layout) {
     layout_add_type(layout, "BitmapLayer", (TypeFuncs) {
         .create = (TypeCreateFunc) bitmap_layer_create,
         .destroy = prv_bitmap_layer_destroy,
         .parse = prv_bitmap_layer_parse,
         .get_layer = (TypeGetLayerFunc) bitmap_layer_get_layer
     }, NULL);
+}
 
+void standard_types_add_status_bar_type(Layout *layout) {
     layout_add_type(layout, "StatusBarLayer", (TypeFuncs) {
         .create = prv_status_bar_layer_create,
         .destroy = (TypeDestroyFunc) status_bar_layer_destroy,
         .parse = prv_status_bar_layer_parse,
         .get_layer = (TypeGetLayerFunc) status_bar_layer_get_layer
     }, NULL);
+}
 
+void standard_types_add_pdc_type(Layout *layout) {
     layout_add_type(layout, "PdcLayer", (TypeFuncs) {
         .create = prv_pdc_layer_create,
         .destroy = prv_pdc_layer_destroy,
